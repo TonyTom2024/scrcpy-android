@@ -30,20 +30,21 @@ jobs:
           mkdir -p app/src/main/assets
           cp scrcpy-server app/src/main/assets/scrcpy-server
 
-      - name: Inspect build.gradle.kts (查看 signingConfigs 用了哪些变量)
-        run: |
-          echo "========== 完整 app/build.gradle.kts =========="
-          cat app/build.gradle.kts
-          echo "========== 仅 signingConfigs 相关行 =========="
-          grep -n "storeFile\|storePassword\|keyAlias\|keyPassword\|getenv\|KEYSTORE\|KEY_\|SIGNING" app/build.gradle.kts || echo "未找到相关行"
-
-      - name: Create dummy keystore
+      - name: Create dummy keystore + keystore.properties
         run: |
           keytool -genkeypair -v \
-            -keystore /tmp/dummy.jks \
+            -keystore ${{ github.workspace }}/dummy.jks \
             -alias dummy -keyalg RSA -keysize 2048 -validity 10000 \
             -storepass android -keypass android \
             -dname "CN=Dummy" -noprompt
+
+          # 项目读取的是 keystore.properties，key 名称与 build.gradle.kts 里一致
+          cat > ${{ github.workspace }}/keystore.properties <<EOF
+          storeFile=dummy.jks
+          storePassword=android
+          keyAlias=dummy
+          keyPassword=android
+          EOF
 
       - name: Patch version string
         run: |
@@ -54,11 +55,6 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Build debug APK
-        env:
-          KEYSTORE_FILE: /tmp/dummy.jks
-          KEYSTORE_PASSWORD: android
-          KEY_ALIAS: dummy
-          KEY_PASSWORD: android
         run: ./gradlew assembleDebug --stacktrace
 
       - name: Upload APK
