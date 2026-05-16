@@ -13,6 +13,7 @@ jobs:
         with:
           repository: feggaa/scrcpy-android
           path: .
+          submodules: recursive        # ← 关键修复，拉取 boringssl 等所有子模块
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -38,7 +39,6 @@ jobs:
             -storepass android -keypass android \
             -dname "CN=Dummy" -noprompt
 
-          # 项目读取的是 keystore.properties，key 名称与 build.gradle.kts 里一致
           cat > ${{ github.workspace }}/keystore.properties <<EOF
           storeFile=dummy.jks
           storePassword=android
