@@ -14,23 +14,38 @@ jobs:
           repository: feggaa/scrcpy-android
           path: .
 
-      # 全程用 JDK 17 —— SDK 和 AGP 8.9 都要它
-      - name: Set up JDK 17
+      # JDK 17 给 sdkmanager，JDK 11 给老项目编译
+      - name: Set up JDK 17 for SDK
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-          cache: gradle
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+
+      - name: Set up JDK 11 for build
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '11'
+          cache: gradle
 
       - name: Download scrcpy-server v4.0
         run: |
           curl -L -o scrcpy-server https://github.com/Genymobile/scrcpy/releases/download/v4.0/scrcpy-server-v4.0
           mkdir -p app/src/main/assets
           cp scrcpy-server app/src/main/assets/scrcpy-server
-          chmod +x app/src/main/assets/scrcpy-server
+
+      - name: Create dummy keystore (修复空路径报错)
+        run: |
+          keytool -genkeypair -v \
+            -keystore /tmp/dummy.jks \
+            -alias dummy -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass android -keypass android \
+            -dname "CN=Dummy" -noprompt
+          # 把 build.gradle.kts 里所有 storeFile = file(...) 替换成这个假文件
+          sed -i -E "s|storeFile = file\([^)]*\)|storeFile = file(\"/tmp/dummy.jks\")|g" app/build.gradle.kts
 
       - name: Patch version string
         run: |
