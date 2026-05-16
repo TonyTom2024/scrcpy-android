@@ -14,26 +14,32 @@ jobs:
           repository: feggaa/scrcpy-android
           path: .
 
-      - name: Set up JDK 11
+      # 1️⃣ 先装 JDK 17 —— 给 sdkmanager 用
+      - name: Set up JDK 17 for SDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      # 2️⃣ 再切回 JDK 11 —— 给老 Gradle 用
+      - name: Set up JDK 11 for build
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '11'
           cache: gradle
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Download scrcpy-server v4.0
         run: |
-          echo "Downloading official scrcpy-server v4.0..."
           curl -L -o scrcpy-server https://github.com/Genymobile/scrcpy/releases/download/v4.0/scrcpy-server-v4.0
           mkdir -p app/src/main/assets
           cp scrcpy-server app/src/main/assets/scrcpy-server
           chmod +x app/src/main/assets/scrcpy-server
-          ls -lh app/src/main/assets/scrcpy-server
 
-      - name: Patch client version string (optional)
+      - name: Patch client version string
         run: |
           find app/src/main/java -type f -name "*.kt" -exec sed -i 's/SERVER_VERSION = ".*"/SERVER_VERSION = "4.0"/' {} + || true
 
@@ -48,4 +54,3 @@ jobs:
         with:
           name: scrcpy-android-v4.0
           path: app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
